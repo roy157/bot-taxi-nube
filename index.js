@@ -1,6 +1,6 @@
 /* ==============================================
    CÓDIGO PARA TU ARCHIVO: index.js
-   ¡VERSIÓN FINAL (NUBE) CON CIERRE PARA EL PASAJERO!
+   ¡VERSIÓN FINAL (NUBE)! NÚMERO PASAJERO DESPUÉS DEL ETA
    ============================================== */
 
 // 1. Importar las librerías
@@ -120,17 +120,16 @@ app.post('/webhook', (req, res) => {
         const msg = req.body.entry[0].changes[0].value.messages[0];
         const from = msg.from; // Número del usuario que envía
 
-        // Inicializamos el estado del usuario si no existe
         if (!userState[from]) {
             userState[from] = { step: 'inicio' };
         }
         let state = userState[from];
 
         let textoEntrada = '';
-        let tipoMensaje = msg.type; // Guardamos el tipo original
+        let tipoMensaje = msg.type;
 
         if (tipoMensaje === 'text') {
-            textoEntrada = msg.text.body; // Guardamos el texto exacto
+            textoEntrada = msg.text.body;
         } else if (tipoMensaje === 'interactive' && msg.interactive.type === 'button_reply') {
             textoEntrada = msg.interactive.button_reply.id;
         } else if (tipoMensaje === 'location') {
@@ -148,15 +147,15 @@ app.post('/webhook', (req, res) => {
 
             if (from === NUMERO_CONDUCTOR_PRUEBA) {
                 state.role = 'conductor';
-                state.step = 'libre'; // Marcamos al conductor como libre
+                state.step = 'libre';
                 enviarMensaje(from, '¡Hola! 🛺 Has abierto tu ventana de 24h. Ya estás **libre** para recibir servicios.');
             } else {
                 state.role = 'pasajero';
-                state.step = 'inicio_saludado'; // Cambiamos de 'inicio' para que no vuelva a entrar aquí
+                state.step = 'inicio_saludado';
                 const botones = [
                     { id: 'solicitar_servicio', title: 'Solicitar Servicio' }
                 ];
-                enviarMensaje(from, '¡Hola, Muy buen día! 🛺\nBienvenido a **Alo Santa Rosa**.\n\nTu servicio de transporte seguro en el distrito Gregorio Albarracín Lanchipa.', botones);
+                enviarMensaje(from, '¡Hola, Muy buen día! 🛺\nBienvenido a *Alo Santa Rosa*.\n\nTu servicio de transporte seguro en el distrito Gregorio Albarracín Lanchipa.', botones);
             }
         }
 
@@ -193,13 +192,13 @@ app.post('/webhook', (req, res) => {
                 if (userState[NUMERO_CONDUCTOR_PRUEBA] && userState[NUMERO_CONDUCTOR_PRUEBA].step !== 'libre') {
                     console.log("Conductor de prueba ocupado. Estado actual:", userState[NUMERO_CONDUCTOR_PRUEBA].step);
                     enviarMensaje(from, "Lo siento, todos nuestros conductores de prueba están ocupados en este momento. Inténtalo más tarde.");
-                    state.step = 'inicio'; // Reseteamos al pasajero
-                    return; // Salimos de la función
+                    state.step = 'inicio';
+                    return;
                 }
 
                 if (!userState[NUMERO_CONDUCTOR_PRUEBA]) userState[NUMERO_CONDUCTOR_PRUEBA] = {};
                 userState[NUMERO_CONDUCTOR_PRUEBA].role = 'conductor';
-                userState[NUMERO_CONDUCTOR_PRUEBA].step = 'recibiendo_viaje'; // Conductor ahora está ocupado
+                userState[NUMERO_CONDUCTOR_PRUEBA].step = 'recibiendo_viaje';
                 userState[NUMERO_CONDUCTOR_PRUEBA].pasajeroId = from;
 
                 state.conductorId = NUMERO_CONDUCTOR_PRUEBA;
@@ -208,7 +207,7 @@ app.post('/webhook', (req, res) => {
 
                 const ubiMapa = state.ubicacionMapa;
                 enviarUbicacion(NUMERO_CONDUCTOR_PRUEBA, ubiMapa.lat, ubiMapa.long, ubiMapa.name, ubiMapa.address);
-                enviarMensaje(NUMERO_CONDUCTOR_PRUEBA, `*Dirección escrita por el cliente: *\n${state.direccionEscrita}`);
+                enviarMensaje(NUMERO_CONDUCTOR_PRUEBA, `*Dirección del cliente:*\n${state.direccionEscrita}`);
 
                 const botonAceptar = [
                     { id: 'aceptar_servicio', title: 'Aceptar Servicio' }
@@ -233,53 +232,54 @@ app.post('/webhook', (req, res) => {
                 placa: "KZ-2205"
             };
 
-            enviarMensaje(pasajeroId, `¡Servicio confirmado! 🛺\n\nSu servicio será prestado por:\n*Nombre:* ${infoConductor.nombre}\n*Vehículo:* ${infoConductor.modelo}\n*Placa:* ${infoConductor.placa}\n\n*Cod. Móvil:* ${infoConductor.codigo}\n*Color:* ${infoConductor.color}\n*Número del conductor es:* ${from}\n\nPor favor, contáctalo solo si es necesario.`);
+            // Avisamos al pasajero (aún SIN el número del conductor)
+            enviarMensaje(pasajeroId, `¡Servicio confirmado! 🛺\n\nSu conductor es:\n*Nombre:* ${infoConductor.nombre}\n*Vehículo:* ${infoConductor.modelo}\n*Placa:* ${infoConductor.placa}\n*Movil:* ${infoConductor.codigo}\n*Color:* ${infoConductor.color}\n\n*Recibirás el número del conductor cuando confirme su tiempo de llegada.*`);
 
             if(userState[pasajeroId]) userState[pasajeroId].step = 'conductor_encontrado';
 
-            enviarMensaje(from, `¡Servicio aceptado! El número de tu pasajero es: *${pasajeroId}*.\nPor favor, contáctalo si es necesario.`);
-
+            // Preguntamos el tiempo al conductor
             const botonesTiempo = [
                 { id: 'eta_5', title: '0-5 minutos' },
                 { id: 'eta_10', title: '5-10 minutos' }
             ];
-            enviarMensaje(from, '¿En cuánto tiempo estimas llegar a la ubicación del cliente?', botonesTiempo);
+            enviarMensaje(from, '¡Servicio aceptado!\n\n¿En cuánto tiempo estimas llegar a la ubicación del cliente?', botonesTiempo);
         }
 
+        // --- MODIFICADO: CONDUCTOR SELECCIONA TIEMPO ---
         else if ((textoEntrada === 'eta_5' || textoEntrada === 'eta_10') && state.role === 'conductor' && state.step === 'aceptado') {
              state.step = 'en_viaje'; // Marcamos al conductor como "en viaje"
              const pasajeroId = state.pasajeroId;
              const tiempo = (textoEntrada === 'eta_5') ? '0-5 minutos' : '5-10 minutos';
 
-             enviarMensaje(pasajeroId, `Tu conductor ha confirmado que llegará entre ${tiempo}. ¡Prepárate!`);
-             // NO reseteamos al pasajero aún, para poder enviarle el mensaje final.
+             // 1. Avisar al Pasajero sobre el tiempo Y DARLE EL NÚMERO DEL CONDUCTOR
+             enviarMensaje(pasajeroId, `Tu conductor ha confirmado que llegará entre ${tiempo}. ¡Prepérate!\n\n**El número de tu conductor es: ${from}**\nPor favor, contáctalo solo si es necesario.`);
 
+             // 2. Avisar al Conductor que el cliente fue notificado Y DARLE EL NÚMERO DEL PASAJERO
+             enviarMensaje(from, `Perfecto. El cliente ha sido notificado.\n\nEl número de tu pasajero es: *${pasajeroId}*.\nPor favor, contáctalo sólo si es necesario.`);
+
+             // 3. Enviar botón de Concluir al Conductor
              const botonConcluir = [
                 { id: 'concluir_servicio', title: 'Concluir Servicio' }
              ];
-             enviarMensaje(from, 'Perfecto. El cliente ha sido notificado.\n\n*Por favor, presiona el botón de abajo SÓLO cuando hayas finalizado el viaje.*', botonConcluir);
+             enviarMensaje(from, '*Por favor, presiona el botón de abajo SÓLO cuando hayas finalizado el viaje.*', botonConcluir);
         }
 
-        // --- CONDUCTOR CONCLUYE EL SERVICIO (¡MODIFICADO!) ---
+        // CONDUCTOR CONCLUYE EL SERVICIO
         else if (textoEntrada === 'concluir_servicio' && state.role === 'conductor') {
-            const pasajeroId = state.pasajeroId; // Recuperamos el ID del pasajero ANTES de resetear
+            const pasajeroId = state.pasajeroId;
 
-            // 1. Mensaje al Conductor
             enviarMensaje(from, '¡Servicio concluido! 🛺\n\n Ya estás listo para recibir nuevas solicitudes.');
 
-            // 2. ¡NUEVO! Mensaje al Pasajero
             if (pasajeroId && userState[pasajeroId]) {
-                 enviarMensaje(pasajeroId, '¡Gracias por confiar en *Alo Santa Rosa*! Esperamos verte pronto. 👋');
-                 // Ahora sí, reseteamos al pasajero
+                 enviarMensaje(pasajeroId, '¡Gracias por confiar en **Alo Santa Rosa**! Esperamos verte pronto. 👋');
                  userState[pasajeroId].step = 'inicio';
-                 userState[pasajeroId].conductorId = null; // Limpiamos la info del conductor
+                 userState[pasajeroId].conductorId = null;
             } else {
                 console.log("No se pudo encontrar al pasajero para enviarle el mensaje de agradecimiento.");
             }
 
-            // 3. Resetear al conductor
-            state.step = 'libre'; // ¡Marcado como libre!
-            state.pasajeroId = null; // Olvidamos al pasajero
+            state.step = 'libre';
+            state.pasajeroId = null;
         }
 
         else {

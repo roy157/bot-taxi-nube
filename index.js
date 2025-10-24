@@ -1,6 +1,7 @@
 /* ==============================================
    CÓDIGO PARA TU ARCHIVO: index.js
-   ¡VERSIÓN FINAL (NUBE)! NÚMERO PASAJERO DESPUÉS DEL ETA
+   ¡VERSIÓN FINAL (NUBE) LIMPIA Y CORREGIDA!
+   (Con Inicio Universal, Botón Concluir y Cierre Pasajero)
    ============================================== */
 
 // 1. Importar las librerías
@@ -24,10 +25,9 @@ let userState = {};
 
 // 5. Función de ayuda para enviar mensajes (con botones)
 const enviarMensaje = (numero, texto, botones = null) => {
-    // Verifica si el número es válido antes de enviar
     if (!numero) {
         console.error("Error: Se intentó enviar mensaje a un número indefinido. Texto:", texto);
-        return; // No intentar enviar si el número es inválido
+        return;
     }
     console.log(`Enviando a ${numero}: ${texto}`);
 
@@ -105,7 +105,7 @@ app.get('/webhook', (req, res) => {
     }
 });
 
-// 8. Ruta para RECIBIR los mensajes de WhatsApp (¡Aquí están los cambios!)
+// 8. Ruta para RECIBIR los mensajes de WhatsApp
 app.post('/webhook', (req, res) => {
 
     console.log('Mensaje recibido:', JSON.stringify(req.body, null, 2));
@@ -155,7 +155,7 @@ app.post('/webhook', (req, res) => {
                 const botones = [
                     { id: 'solicitar_servicio', title: 'Solicitar Servicio' }
                 ];
-                enviarMensaje(from, '¡Hola, Muy buen día! 🛺\nBienvenido a *Alo Santa Rosa*.\n\nTu servicio de transporte seguro en el distrito Gregorio Albarracín Lanchipa.', botones);
+                enviarMensaje(from, '¡Hola, Muy buen día! 🛺\nBienvenido a **Alo Santa Rosa**.\n\nTu servicio de transporte seguro en el distrito Gregorio Albarracín Lanchipa.', botones);
             }
         }
 
@@ -207,7 +207,7 @@ app.post('/webhook', (req, res) => {
 
                 const ubiMapa = state.ubicacionMapa;
                 enviarUbicacion(NUMERO_CONDUCTOR_PRUEBA, ubiMapa.lat, ubiMapa.long, ubiMapa.name, ubiMapa.address);
-                enviarMensaje(NUMERO_CONDUCTOR_PRUEBA, `*Dirección del cliente:*\n${state.direccionEscrita}`);
+                enviarMensaje(NUMERO_CONDUCTOR_PRUEBA, `*Dirección escrita por el cliente: *\n${state.direccionEscrita}`);
 
                 const botonAceptar = [
                     { id: 'aceptar_servicio', title: 'Aceptar Servicio' }
@@ -233,7 +233,7 @@ app.post('/webhook', (req, res) => {
             };
 
             // Avisamos al pasajero (aún SIN el número del conductor)
-            enviarMensaje(pasajeroId, `¡Servicio confirmado! 🛺\n\nSu conductor es:\n*Nombre:* ${infoConductor.nombre}\n*Vehículo:* ${infoConductor.modelo}\n*Placa:* ${infoConductor.placa}\n*Movil:* ${infoConductor.codigo}\n*Color:* ${infoConductor.color}\n\n*Recibirás el número del conductor cuando confirme su tiempo de llegada.*`);
+            enviarMensaje(pasajeroId, `¡Servicio confirmado! 🛺\n\nSu servicio será prestado por:\n*Nombre:* ${infoConductor.nombre}\n*Vehículo:* ${infoConductor.modelo}\n*Placa:* ${infoConductor.placa}\n\n*Cod. Móvil:* ${infoConductor.codigo}\n*Color:* ${infoConductor.color}\n\n*Recibirás el número del conductor cuando confirme su tiempo de llegada.*`);
 
             if(userState[pasajeroId]) userState[pasajeroId].step = 'conductor_encontrado';
 
@@ -245,17 +245,17 @@ app.post('/webhook', (req, res) => {
             enviarMensaje(from, '¡Servicio aceptado!\n\n¿En cuánto tiempo estimas llegar a la ubicación del cliente?', botonesTiempo);
         }
 
-        // --- MODIFICADO: CONDUCTOR SELECCIONA TIEMPO ---
+        // CONDUCTOR SELECCIONA TIEMPO
         else if ((textoEntrada === 'eta_5' || textoEntrada === 'eta_10') && state.role === 'conductor' && state.step === 'aceptado') {
              state.step = 'en_viaje'; // Marcamos al conductor como "en viaje"
              const pasajeroId = state.pasajeroId;
              const tiempo = (textoEntrada === 'eta_5') ? '0-5 minutos' : '5-10 minutos';
 
              // 1. Avisar al Pasajero sobre el tiempo Y DARLE EL NÚMERO DEL CONDUCTOR
-             enviarMensaje(pasajeroId, `Tu conductor ha confirmado que llegará entre ${tiempo}. ¡Prepérate!\n\n**El número de tu conductor es: ${from}**\nPor favor, contáctalo solo si es necesario.`);
+             enviarMensaje(pasajeroId, `Tu conductor ha confirmado que llegará entre ${tiempo}. ¡Prepárate!\n\n**El número de tu conductor es: ${from}**\nPor favor, contáctalo solo si es necesario.`);
 
              // 2. Avisar al Conductor que el cliente fue notificado Y DARLE EL NÚMERO DEL PASAJERO
-             enviarMensaje(from, `Perfecto. El cliente ha sido notificado.\n\nEl número de tu pasajero es: *${pasajeroId}*.\nPor favor, contáctalo sólo si es necesario.`);
+             enviarMensaje(from, `Perfecto. El cliente ha sido notificado.\n\nEl número de tu pasajero es: **${pasajeroId}**.\nPor favor, contáctalo si es necesario.`);
 
              // 3. Enviar botón de Concluir al Conductor
              const botonConcluir = [
@@ -268,16 +268,20 @@ app.post('/webhook', (req, res) => {
         else if (textoEntrada === 'concluir_servicio' && state.role === 'conductor') {
             const pasajeroId = state.pasajeroId;
 
+            // 1. Mensaje al Conductor
             enviarMensaje(from, '¡Servicio concluido! 🛺\n\n Ya estás listo para recibir nuevas solicitudes.');
 
+            // 2. Mensaje al Pasajero
             if (pasajeroId && userState[pasajeroId]) {
                  enviarMensaje(pasajeroId, '¡Gracias por confiar en **Alo Santa Rosa**! Esperamos verte pronto. 👋');
+                 // Reseteamos al pasajero
                  userState[pasajeroId].step = 'inicio';
                  userState[pasajeroId].conductorId = null;
             } else {
                 console.log("No se pudo encontrar al pasajero para enviarle el mensaje de agradecimiento.");
             }
 
+            // 3. Resetear al conductor
             state.step = 'libre';
             state.pasajeroId = null;
         }

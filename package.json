@@ -1,0 +1,19 @@
+{
+  "name": "bot-taxi-nube",
+  "version": "1.0.0",
+  "description": "Mi bot de taxi para la nube con la API Oficial de Meta",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.2",
+    "body-parser": "^1.20.2",
+    "express": "^4.19.2"
+  },
+  "engines": {
+    "node": "18.x"
+  },
+  "author": "",
+  "license": "ISC"
+}

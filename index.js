@@ -233,7 +233,7 @@ app.post('/webhook', (req, res) => {
                 placa: "KZ-2205"
             };
 
-            enviarMensaje(pasajeroId, `¡Servicio confirmado! 🛺\n\nSu servicio será prestado por:\n*Nombre:* ${infoConductor.nombre}\n*Vehículo:* ${infoConductor.modelo}\n*Placa:* ${infoConductor.placa}\n*Movil:* ${infoConductor.codigo}\n*Color:* ${infoConductor.color}\n*Número del conductor es:* ${from}\n\nPor favor, contáctalo solo si es necesario.`);
+            enviarMensaje(pasajeroId, `¡Servicio confirmado! 🛺\n\nSu conductor es:\n*Nombre:* ${infoConductor.nombre}\n*Vehículo:* ${infoConductor.modelo}\n*Placa:* ${infoConductor.placa}\n*Movil:* ${infoConductor.codigo}\n*Color:* ${infoConductor.color}\n*Número del conductor:* ${from}\n\nPor favor, contáctalo solo si es necesario.`);
 
             if(userState[pasajeroId]) userState[pasajeroId].step = 'conductor_encontrado';
 
@@ -269,7 +269,7 @@ app.post('/webhook', (req, res) => {
 
             // 2. ¡NUEVO! Mensaje al Pasajero
             if (pasajeroId && userState[pasajeroId]) {
-                 enviarMensaje(pasajeroId, '¡Gracias por confiar en *Alo Santa Rosa*! Esperamos verte pronto. 👋');
+                 enviarMensaje(pasajeroId, '¡Gracias por confiar en *Alo Santa Rosa*! Esperamos verte pronto. 😊');
                  // Ahora sí, reseteamos al pasajero
                  userState[pasajeroId].step = 'inicio';
                  userState[pasajeroId].conductorId = null; // Limpiamos la info del conductor
@@ -298,4 +298,5 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log('¡Servidor listo y desplegado!');
     console.log(`=======================================================`);
 });
+
 
